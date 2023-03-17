@@ -1,8 +1,11 @@
-module httpscout
+module github.com/jonasrichard/httpscout
 
 go 1.20
 
-require github.com/mum4k/termdash v0.18.0
+require (
+	github.com/google/gopacket v1.1.19
+	github.com/mum4k/termdash v0.18.0
+)
 
 require (
 	github.com/gdamore/encoding v1.0.0 // indirect

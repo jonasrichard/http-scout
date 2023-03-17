@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+    "github.com/jonasrichard/httpscout/capture"
 	"github.com/mum4k/termdash"
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/keyboard"
@@ -16,6 +17,12 @@ import (
 )
 
 func main() {
+    if err := capture.Run(); err != nil {
+        fmt.Println(err)
+    }
+}
+
+func dashboard() {
 	t, err := tcell.New(tcell.ColorMode(terminalapi.ColorMode256))
 
 	if err != nil {
