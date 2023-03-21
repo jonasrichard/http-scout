@@ -17,6 +17,8 @@ import (
 )
 
 func main() {
+    capture := capture.NewCapture()
+
     if err := capture.Run(); err != nil {
         fmt.Println(err)
     }
