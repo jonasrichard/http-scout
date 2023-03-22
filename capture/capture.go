@@ -99,7 +99,7 @@ func (c *Capture) AddStreamFragment(sf *StreamFragment) {
 		stream.SrcPayload = append(stream.SrcPayload, sf.Payload...)
 	}
 
-    alreadyFinished := stream.SrcFIN && stream.DstFIN
+	alreadyFinished := stream.SrcFIN && stream.DstFIN
 
 	if sf.FIN {
 		if reversed {
