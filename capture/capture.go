@@ -1,12 +1,12 @@
 package capture
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"github.com/jonasrichard/httpscout/ui"
 )
 
 type Endpoint struct {
@@ -48,23 +48,23 @@ func (ep EndpointPair) Reverse() EndpointPair {
 
 func NewCapture() *Capture {
 	devs, err := pcap.FindAllDevs()
-    if err != nil {
-        return nil
-    }
+	if err != nil {
+		return nil
+	}
 
-    devices := make([]string, 0)
+	devices := make([]string, 0)
 
 	for i := range devs {
 		devices = append(devices, devs[i].Name)
 	}
 
 	return &Capture{
-        Devices: devices,
+		Devices: devices,
 		Streams: make(map[EndpointPair]*Stream),
 	}
 }
 
-func (c *Capture) Run() error {
+func (c *Capture) Run(ch chan ui.Stream) error {
 	if handle, err := pcap.OpenLive("lo0", 1600, true, pcap.BlockForever); err != nil {
 		return err
 	} else if err := handle.SetBPFFilter("tcp and port 9000"); err != nil {
@@ -74,7 +74,15 @@ func (c *Capture) Run() error {
 
 		for packet := range packetSource.Packets() {
 			if sf := handlePacket(packet); sf != nil {
-				c.AddStreamFragment(sf)
+				if stream := c.AddStreamFragment(sf); stream != nil {
+					ch <- ui.Stream{
+                        Timestamp: "Now",
+                        Host: "todo",
+                        Path: "todo",
+                        Request: string(stream.SrcPayload),
+                        Response: string(stream.DstPayload),
+                    }
+				}
 			}
 		}
 	}
@@ -82,7 +90,7 @@ func (c *Capture) Run() error {
 	return nil
 }
 
-func (c *Capture) AddStreamFragment(sf *StreamFragment) {
+func (c *Capture) AddStreamFragment(sf *StreamFragment) *Stream {
 	reversed := false
 
 	stream, ok := c.Streams[sf.Endpoints]
@@ -123,13 +131,14 @@ func (c *Capture) AddStreamFragment(sf *StreamFragment) {
 	}
 
 	if !alreadyFinished && stream.SrcFIN && stream.DstFIN {
-		fmt.Println(string(stream.SrcPayload))
-		fmt.Println(string(stream.DstPayload))
+		return stream
+	} else {
+		return nil
 	}
 }
 
 func handlePacket(packet gopacket.Packet) *StreamFragment {
-	fmt.Printf("Packet %v\n", packet)
+	//fmt.Printf("Packet %v\n", packet)
 
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
 		result := &StreamFragment{}

@@ -11,18 +11,14 @@ import (
 func main() {
 	capture := capture.NewCapture()
 
-	dashboard(capture.Devices)
+    streamCh := make(chan ui.Stream)
 
-	//if err := capture.Run(); err != nil {
-	//	fmt.Println(err)
-	//}
-}
+    go capture.Run(streamCh)
 
-func dashboard(devices []string) {
 	if err := termui.Init(); err != nil {
 		log.Fatalf("Cannot initialize terminal %v", err)
 	}
 	defer termui.Close()
 
-	ui.New(devices).Dashboard()
+	ui.New(capture.Devices).Dashboard(streamCh)
 }

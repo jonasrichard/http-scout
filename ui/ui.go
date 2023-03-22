@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -44,13 +46,14 @@ func New(devices []string) *State {
 	}
 }
 
-func (s *State) Dashboard() (err error) {
+func (s *State) Dashboard(ch chan Stream) (err error) {
 	s.tw, s.th = termui.TerminalDimensions()
 
 	requests := widgets.NewList()
 	requests.Title = "HTTP Requests"
 	requests.SetRect(0, 0, s.tw, s.th/2)
 	requests.Border = true
+	requests.SelectedRowStyle = termui.NewStyle(termui.ColorBlack, termui.ColorWhite)
 
 	s.requests = requests
 
@@ -65,37 +68,66 @@ func (s *State) Dashboard() (err error) {
 
 	termui.Render(requests, content)
 
-	for evt := range termui.PollEvents() {
-		switch evt.ID {
-		case "d":
-			s.active = DeviceList
-		case "q", "<Escape>", "<C-c>":
-			return
+	events := termui.PollEvents()
+
+	for {
+		select {
+		case evt := <-events:
+			switch evt.ID {
+			case "d":
+				s.active = DeviceList
+			case "q", "<Escape>", "<C-c>":
+				return
+			}
+
+			switch s.active {
+			// Handle key events for requests list
+			case RequestList:
+				switch evt.ID {
+				case "j", "<Down>":
+					s.requests.ScrollDown()
+
+                    // TODO update content in a more optimal way
+                    i := s.requests.SelectedRow
+                    s.content.Text = s.streams[i].Request + "\n\n" + s.streams[i].Response
+				case "k", "<Up>":
+					s.requests.ScrollUp()
+
+                    // TODO update content in a more optimal way
+                    i := s.requests.SelectedRow
+                    s.content.Text = s.streams[i].Request + "\n\n" + s.streams[i].Response
+				}
+
+			case DeviceList:
+				switch evt.ID {
+				case "j", "<Down>":
+					s.deviceChooser.ScrollDown()
+				case "k", "<Up>":
+					s.deviceChooser.ScrollUp()
+				case "<Enter>":
+					deviceName := s.devices[s.deviceChooser.SelectedRow]
+					s.requests.Title = "HTTP Requests - " + deviceName
+					s.requests.BorderStyle = termui.NewStyle(termui.ColorGreen)
+					s.active = RequestList
+				}
+			}
+
+		case stream := <-ch:
+			s.streams = append(s.streams, stream)
+
+			line := fmt.Sprintf("%s %s %s", stream.Timestamp, stream.Host, stream.Path)
+
+			s.requests.Rows = append(s.requests.Rows, line)
 		}
 
+		// Redraw UI
 		switch s.active {
 		case DeviceList:
-			switch evt.ID {
-			case "j", "<Down>":
-				s.deviceChooser.ScrollDown()
-			case "k", "<Up>":
-				s.deviceChooser.ScrollUp()
-			case "<Enter>":
-				deviceName := s.devices[s.deviceChooser.SelectedRow]
-				s.requests.Title = "HTTP Requests - " + deviceName
-				s.active = RequestList
-			}
-		}
-
-        switch s.active {
-        case DeviceList:
 			termui.Render(s.requests, s.content, s.deviceChooser)
-        default:
+		default:
 			termui.Render(s.requests, s.content)
-        }
+		}
 	}
-
-	return
 }
 
 func (s *State) Help() *widgets.Paragraph {
