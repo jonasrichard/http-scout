@@ -35,6 +35,7 @@ type Stream struct {
 }
 
 type Capture struct {
+	Devices []string
 	Streams map[EndpointPair]*Stream
 }
 
@@ -46,7 +47,19 @@ func (ep EndpointPair) Reverse() EndpointPair {
 }
 
 func NewCapture() *Capture {
+	devs, err := pcap.FindAllDevs()
+    if err != nil {
+        return nil
+    }
+
+    devices := make([]string, 0)
+
+	for i := range devs {
+		devices = append(devices, devs[i].Name)
+	}
+
 	return &Capture{
+        Devices: devices,
 		Streams: make(map[EndpointPair]*Stream),
 	}
 }

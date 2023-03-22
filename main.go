@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gizak/termui/v3"
@@ -9,23 +8,21 @@ import (
 	"github.com/jonasrichard/httpscout/ui"
 )
 
-func main2() {
+func main() {
 	capture := capture.NewCapture()
 
-	if err := capture.Run(); err != nil {
-		fmt.Println(err)
+	dashboard(capture.Devices)
+
+	//if err := capture.Run(); err != nil {
+	//	fmt.Println(err)
+	//}
+}
+
+func dashboard(devices []string) {
+	if err := termui.Init(); err != nil {
+		log.Fatalf("Cannot initialize terminal %v", err)
 	}
-}
+	defer termui.Close()
 
-func main() {
-	dashboard()
-}
-
-func dashboard() {
-    if err := termui.Init(); err != nil {
-        log.Fatalf("Cannot initialize terminal %v", err)
-    }
-    defer termui.Close()
-
-    ui.New().Dashboard()
+	ui.New(devices).Dashboard()
 }
